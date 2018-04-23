@@ -102,11 +102,11 @@ rawReq loadgenlib.RawReq, rawResp loadgenlib.RawResp) *loadgenlib.CallResult {
 		commResult.Msg =
 			fmt.Sprintf(
 				"Incorrect result: %s!\n",
-				genFormula(sreq.Operands, sreq.Operator, sresp.Result, false))
+				genExpress(sreq.Operands, sreq.Operator, sresp.Result, false))
 		return &commResult
 	}
 	commResult.Code = loadgenlib.RET_CODE_SUCCESS
-	commResult.Msg = fmt.Sprintf("Success. (%s)", sresp.Formula)
+	commResult.Msg = fmt.Sprintf("Success. (%s)", sresp.Express)
 	return &commResult
 }
 
@@ -115,11 +115,11 @@ func read(conn net.Conn, delim byte) ([]byte, error) {
 	readBytes := make([]byte, 1)
 	var buffer bytes.Buffer
 	for {
-		_, err := conn.Read(readBytes)
+		n, err := conn.Read(readBytes)
 		if err != nil {
 			return nil, err
 		}
-		readByte := readBytes[0]
+		readByte := readBytes[n - 1]
 		if readByte == delim {
 			break
 		}

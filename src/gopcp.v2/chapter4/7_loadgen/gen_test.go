@@ -32,12 +32,10 @@ func TestStart(t *testing.T) {
 		DurationNS: 10 * time.Second,
 		ResultCh:   make(chan *loadgenlib.CallResult, 50),
 	}
-	t.Logf("Initialize load generator (timeoutNS=%v, lps=%d, durationNS=%v)...",
-		pset.TimeoutNS, pset.LPS, pset.DurationNS)
+	t.Logf("Initialize load generator (timeoutNS=%v, lps=%d, durationNS=%v)...",pset.TimeoutNS, pset.LPS, pset.DurationNS)
 	gen, err := NewGenerator(pset)
 	if err != nil {
-		t.Fatalf("Load generator initialization failing: %s\n",
-			err)
+		t.Fatalf("Load generator initialization failing: %s\n",err)
 		t.FailNow()
 	}
 
@@ -50,8 +48,7 @@ func TestStart(t *testing.T) {
 	for r := range pset.ResultCh {
 		countMap[r.Code] = countMap[r.Code] + 1
 		if printDetail {
-			t.Logf("Result: ID=%d, Code=%d, Msg=%s, Elapse=%v.\n",
-				r.ID, r.Code, r.Msg, r.Elapse)
+			t.Logf("Result: ID=%d, Code=%d, Msg=%s, Elapse=%v.\n",r.ID, r.Code, r.Msg, r.Elapse)
 		}
 	}
 
@@ -59,8 +56,7 @@ func TestStart(t *testing.T) {
 	t.Log("RetCode Count:")
 	for k, v := range countMap {
 		codePlain := loadgenlib.GetRetCodePlain(k)
-		t.Logf("  Code plain: %s (%d), Count: %d.\n",
-			codePlain, k, v)
+		t.Logf("  Code plain: %s (%d), Count: %d.\n",codePlain, k, v)
 		total += v
 	}
 
@@ -71,7 +67,6 @@ func TestStart(t *testing.T) {
 }
 
 func TestStop(t *testing.T) {
-
 	// 初始化服务器。
 	server := helper.NewTCPServer()
 	defer server.Close()

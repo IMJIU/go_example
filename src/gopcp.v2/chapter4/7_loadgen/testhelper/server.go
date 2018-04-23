@@ -25,7 +25,7 @@ type ServerReq struct {
 // ServerResp 表示服务器响应的结构。
 type ServerResp struct {
 	ID      int64
-	Formula string
+	Express string
 	Result  int
 	Err     error
 }
@@ -70,7 +70,7 @@ func op(operands []int, operator string) int {
 }
 
 // genFormula 会根据参数生成字符串形式的公式。
-func genFormula(operands []int, operator string, result int, equal bool) string {
+func genExpress(operands []int, operator string, result int, equal bool) string {
 	var buff bytes.Buffer
 	n := len(operands)
 	for i := 0; i < n; i++ {
@@ -106,8 +106,7 @@ func reqHandler(conn net.Conn) {
 		} else {
 			sresp.ID = sreq.ID
 			sresp.Result = op(sreq.Operands, sreq.Operator)
-			sresp.Formula =
-				genFormula(sreq.Operands, sreq.Operator, sresp.Result, true)
+			sresp.Express = genExpress(sreq.Operands, sreq.Operator, sresp.Result, true)
 		}
 	}
 	if errMsg != "" {
