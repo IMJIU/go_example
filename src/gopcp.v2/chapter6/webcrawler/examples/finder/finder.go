@@ -91,10 +91,7 @@ func main() {
 		Pipelines:   pipelines,
 	}
 	// 初始化调度器。
-	err = scheduler.Init(
-		requestArgs,
-		dataArgs,
-		moduleArgs)
+	err = scheduler.Init(requestArgs,dataArgs,moduleArgs)
 	if err != nil {
 		logger.Fatalf("An error occurs when initializing scheduler: %s", err)
 	}
@@ -103,13 +100,8 @@ func main() {
 	summarizeInterval := 100 * time.Millisecond
 	maxIdleCount := uint(5)
 	// 开始监控。
-	checkCountChan := monitor.Monitor(
-		scheduler,
-		checkInterval,
-		summarizeInterval,
-		maxIdleCount,
-		true,
-		lib.Record)
+	checkCountChan := monitor.Monitor(scheduler,checkInterval,summarizeInterval,maxIdleCount,
+		true,lib.Record)
 	// 准备调度器的启动参数。
 	firstHTTPReq, err := http.NewRequest("GET", firstURL, nil)
 	if err != nil {

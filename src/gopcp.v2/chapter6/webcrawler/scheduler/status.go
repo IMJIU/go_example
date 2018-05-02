@@ -34,10 +34,7 @@ const (
 //     3. 处于未初始化状态时，不能变为正在启动或正在停止状态。
 //     4. 处于已启动状态时，不能变为正在初始化或正在启动状态。
 //     5. 只要未处于已启动状态就不能变为正在停止状态。
-func checkStatus(
-	currentStatus Status,
-	wantedStatus Status,
-	lock sync.Locker) (err error) {
+func checkStatus(currentStatus Status, wantedStatus Status,lock sync.Locker) (err error) {
 	if lock != nil {
 		lock.Lock()
 		defer lock.Unlock()
@@ -54,8 +51,7 @@ func checkStatus(
 		return
 	}
 	if currentStatus == SCHED_STATUS_UNINITIALIZED &&
-		(wantedStatus == SCHED_STATUS_STARTING ||
-			wantedStatus == SCHED_STATUS_STOPPING) {
+		(wantedStatus == SCHED_STATUS_STARTING ||wantedStatus == SCHED_STATUS_STOPPING) {
 		err = genError("the scheduler has not yet been initialized!")
 		return
 	}

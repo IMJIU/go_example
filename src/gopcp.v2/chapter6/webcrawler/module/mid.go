@@ -58,16 +58,14 @@ func SplitMID(mid MID) ([]string, error) {
 	}
 	letter = midStr[:1]
 	if _, ok = legalLetterTypeMap[letter]; !ok {
-		return nil, errors.NewIllegalParameterError(
-			fmt.Sprintf("illegal module type letter: %s", letter))
+		return nil, errors.NewIllegalParameterError(fmt.Sprintf("illegal module type letter: %s", letter))
 	}
 	snAndAddr := midStr[1:]
 	index := strings.LastIndex(snAndAddr, "|")
 	if index < 0 {
 		snStr = snAndAddr
 		if !legalSN(snStr) {
-			return nil, errors.NewIllegalParameterError(
-				fmt.Sprintf("illegal module SN: %s", snStr))
+			return nil, errors.NewIllegalParameterError(fmt.Sprintf("illegal module SN: %s", snStr))
 		}
 	} else {
 		snStr = snAndAddr[:index]

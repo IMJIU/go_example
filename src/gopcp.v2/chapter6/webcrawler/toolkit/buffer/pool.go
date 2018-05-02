@@ -36,27 +36,25 @@ type Pool interface {
 // myPool 代表数据缓冲池接口的实现类型。
 type myPool struct {
 	// bufferCap 代表缓冲器的统一容量。
-	bufferCap uint32
+	bufferCap       uint32
 	// maxBufferNumber 代表缓冲器的最大数量。
 	maxBufferNumber uint32
 	// bufferNumber 代表缓冲器的实际数量。
-	bufferNumber uint32
+	bufferNumber    uint32
 	// total 代表池中数据的总数。
-	total uint64
+	total           uint64
 	// bufCh 代表存放缓冲器的通道。
-	bufCh chan Buffer
+	bufCh           chan Buffer
 	// closed 代表缓冲池的关闭状态：0-未关闭；1-已关闭。
-	closed uint32
+	closed          uint32
 	// lock 代表保护内部共享资源的读写锁。
-	rwlock sync.RWMutex
+	rwlock          sync.RWMutex
 }
 
 // NewPool 用于创建一个数据缓冲池。
 // 参数bufferCap代表池内缓冲器的统一容量。
 // 参数maxBufferNumber代表池中最多包含的缓冲器的数量。
-func NewPool(
-	bufferCap uint32,
-	maxBufferNumber uint32) (Pool, error) {
+func NewPool(bufferCap uint32, maxBufferNumber uint32) (Pool, error) {
 	if bufferCap == 0 {
 		errMsg := fmt.Sprintf("illegal buffer cap for buffer pool: %d", bufferCap)
 		return nil, errors.NewIllegalParameterError(errMsg)
@@ -110,7 +108,7 @@ func (pool *myPool) Put(datum interface{}) (err error) {
 
 // putData 用于向给定的缓冲器放入数据，并在必要时把缓冲器归还给池。
 func (pool *myPool) putData(
-	buf Buffer, datum interface{}, count *uint32, maxCount uint32) (ok bool, err error) {
+buf Buffer, datum interface{}, count *uint32, maxCount uint32) (ok bool, err error) {
 	if pool.Closed() {
 		return false, ErrClosedBufferPool
 	}
@@ -175,7 +173,7 @@ func (pool *myPool) Get() (datum interface{}, err error) {
 
 // getData 用于从给定的缓冲器获取数据，并在必要时把缓冲器归还给池。
 func (pool *myPool) getData(
-	buf Buffer, count *uint32, maxCount uint32) (datum interface{}, err error) {
+buf Buffer, count *uint32, maxCount uint32) (datum interface{}, err error) {
 	if pool.Closed() {
 		return nil, ErrClosedBufferPool
 	}

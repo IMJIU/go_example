@@ -26,9 +26,7 @@ type Registrar interface {
 
 // NewRegistrar 用于创建一个组件注册器的实例。
 func NewRegistrar() Registrar {
-	return &myRegistrar{
-		moduleTypeMap: map[Type]map[MID]Module{},
-	}
+	return &myRegistrar{moduleTypeMap: map[Type]map[MID]Module{}}
 }
 
 // myRegistrar 代表组件注册器的实现类型。

@@ -24,8 +24,8 @@ type Scheduler interface {
 	// 参数dataArgs代表数据相关的参数。
 	// 参数moduleArgs代表组件相关的参数。
 	Init(requestArgs RequestArgs,
-		dataArgs DataArgs,
-		moduleArgs ModuleArgs) (err error)
+	dataArgs DataArgs,
+	moduleArgs ModuleArgs) (err error)
 	// Start 用于启动调度器并执行爬取流程。
 	// 参数firstHTTPReq即代表首次请求。调度器会以此为起始点开始执行爬取流程。
 	Start(firstHTTPReq *http.Request) (err error)
@@ -52,42 +52,38 @@ func NewScheduler() Scheduler {
 // myScheduler 代表调度器的实现类型。
 type myScheduler struct {
 	// maxDepth 代表爬取的最大深度。首次请求的深度为0。
-	maxDepth uint32
+	maxDepth          uint32
 	// acceptedDomainMap 代表可以接受的URL的主域名的字典。
 	acceptedDomainMap cmap.ConcurrentMap
 	// registrar 代表组件注册器。
-	registrar module.Registrar
+	registrar         module.Registrar
 	// reqBufferPool 代表请求的缓冲池。
-	reqBufferPool buffer.Pool
+	reqBufferPool     buffer.Pool
 	// respBufferPool 代表响应的缓冲池。
-	respBufferPool buffer.Pool
+	respBufferPool    buffer.Pool
 	// itemBufferPool 代表条目的缓冲池。
-	itemBufferPool buffer.Pool
+	itemBufferPool    buffer.Pool
 	// errorBufferPool 代表错误的缓冲池。
-	errorBufferPool buffer.Pool
+	errorBufferPool   buffer.Pool
 	// urlMap 代表已处理的URL的字典。
-	urlMap cmap.ConcurrentMap
+	urlMap            cmap.ConcurrentMap
 	// ctx 代表上下文，用于感知调度器的停止。
-	ctx context.Context
+	ctx               context.Context
 	// cancelFunc 代表取消函数，用于停止调度器。
-	cancelFunc context.CancelFunc
+	cancelFunc        context.CancelFunc
 	// status 代表状态。
-	status Status
+	status            Status
 	// statusLock 代表专用于状态的读写锁。
-	statusLock sync.RWMutex
+	statusLock        sync.RWMutex
 	// summary 代表摘要信息。
-	summary SchedSummary
+	summary           SchedSummary
 }
 
-func (sched *myScheduler) Init(
-	requestArgs RequestArgs,
-	dataArgs DataArgs,
-	moduleArgs ModuleArgs) (err error) {
+func (sched *myScheduler) Init(requestArgs RequestArgs, dataArgs DataArgs, moduleArgs ModuleArgs) (err error) {
 	// 检查状态。
 	logger.Info("Check status for initialization...")
 	var oldStatus Status
-	oldStatus, err =
-		sched.checkAndSetStatus(SCHED_STATUS_INITIALIZING)
+	oldStatus, err = sched.checkAndSetStatus(SCHED_STATUS_INITIALIZING)
 	if err != nil {
 		return
 	}
@@ -124,16 +120,13 @@ func (sched *myScheduler) Init(
 	}
 	sched.maxDepth = requestArgs.MaxDepth
 	logger.Infof("-- Max depth: %d", sched.maxDepth)
-	sched.acceptedDomainMap, _ =
-		cmap.NewConcurrentMap(1, nil)
+	sched.acceptedDomainMap, _ = cmap.NewConcurrentMap(1, nil)
 	for _, domain := range requestArgs.AcceptedDomains {
 		sched.acceptedDomainMap.Put(domain, struct{}{})
 	}
-	logger.Infof("-- Accepted primary domains: %v",
-		requestArgs.AcceptedDomains)
+	logger.Infof("-- Accepted primary domains: %v", requestArgs.AcceptedDomains)
 	sched.urlMap, _ = cmap.NewConcurrentMap(16, nil)
-	logger.Infof("-- URL map: length: %d, concurrency: %d",
-		sched.urlMap.Len(), sched.urlMap.Concurrency())
+	logger.Infof("-- URL map: length: %d, concurrency: %d", sched.urlMap.Len(), sched.urlMap.Concurrency())
 	sched.initBufferPool(dataArgs)
 	sched.resetContext()
 	sched.summary =
@@ -159,8 +152,7 @@ func (sched *myScheduler) Start(firstHTTPReq *http.Request) (err error) {
 	// 检查状态。
 	logger.Info("Check status for start...")
 	var oldStatus Status
-	oldStatus, err =
-		sched.checkAndSetStatus(SCHED_STATUS_STARTING)
+	oldStatus, err = sched.checkAndSetStatus(SCHED_STATUS_STARTING)
 	defer func() {
 		sched.statusLock.Lock()
 		if err != nil {
@@ -209,8 +201,7 @@ func (sched *myScheduler) Stop() (err error) {
 	// 检查状态。
 	logger.Info("Check status for stop...")
 	var oldStatus Status
-	oldStatus, err =
-		sched.checkAndSetStatus(SCHED_STATUS_STOPPING)
+	oldStatus, err = sched.checkAndSetStatus(SCHED_STATUS_STOPPING)
 	defer func() {
 		sched.statusLock.Lock()
 		if err != nil {
@@ -291,8 +282,7 @@ func (sched *myScheduler) Summary() SchedSummary {
 }
 
 // checkAndSetStatus 用于状态的检查，并在条件满足时设置状态。
-func (sched *myScheduler) checkAndSetStatus(
-	wantedStatus Status) (oldStatus Status, err error) {
+func (sched *myScheduler) checkAndSetStatus(wantedStatus Status) (oldStatus Status, err error) {
 	sched.statusLock.Lock()
 	defer sched.statusLock.Unlock()
 	oldStatus = sched.status
@@ -613,32 +603,28 @@ func (sched *myScheduler) initBufferPool(dataArgs DataArgs) {
 	if sched.reqBufferPool != nil && !sched.reqBufferPool.Closed() {
 		sched.reqBufferPool.Close()
 	}
-	sched.reqBufferPool, _ = buffer.NewPool(
-		dataArgs.ReqBufferCap, dataArgs.ReqMaxBufferNumber)
+	sched.reqBufferPool, _ = buffer.NewPool(dataArgs.ReqBufferCap, dataArgs.ReqMaxBufferNumber)
 	logger.Infof("-- Request buffer pool: bufferCap: %d, maxBufferNumber: %d",
 		sched.reqBufferPool.BufferCap(), sched.reqBufferPool.MaxBufferNumber())
 	// 初始化响应缓冲池。
 	if sched.respBufferPool != nil && !sched.respBufferPool.Closed() {
 		sched.respBufferPool.Close()
 	}
-	sched.respBufferPool, _ = buffer.NewPool(
-		dataArgs.RespBufferCap, dataArgs.RespMaxBufferNumber)
+	sched.respBufferPool, _ = buffer.NewPool(dataArgs.RespBufferCap, dataArgs.RespMaxBufferNumber)
 	logger.Infof("-- Response buffer pool: bufferCap: %d, maxBufferNumber: %d",
 		sched.respBufferPool.BufferCap(), sched.respBufferPool.MaxBufferNumber())
 	// 初始化条目缓冲池。
 	if sched.itemBufferPool != nil && !sched.itemBufferPool.Closed() {
 		sched.itemBufferPool.Close()
 	}
-	sched.itemBufferPool, _ = buffer.NewPool(
-		dataArgs.ItemBufferCap, dataArgs.ItemMaxBufferNumber)
+	sched.itemBufferPool, _ = buffer.NewPool(dataArgs.ItemBufferCap, dataArgs.ItemMaxBufferNumber)
 	logger.Infof("-- Item buffer pool: bufferCap: %d, maxBufferNumber: %d",
 		sched.itemBufferPool.BufferCap(), sched.itemBufferPool.MaxBufferNumber())
 	// 初始化错误缓冲池。
 	if sched.errorBufferPool != nil && !sched.errorBufferPool.Closed() {
 		sched.errorBufferPool.Close()
 	}
-	sched.errorBufferPool, _ = buffer.NewPool(
-		dataArgs.ErrorBufferCap, dataArgs.ErrorMaxBufferNumber)
+	sched.errorBufferPool, _ = buffer.NewPool(dataArgs.ErrorBufferCap, dataArgs.ErrorMaxBufferNumber)
 	logger.Infof("-- Error buffer pool: bufferCap: %d, maxBufferNumber: %d",
 		sched.errorBufferPool.BufferCap(), sched.errorBufferPool.MaxBufferNumber())
 }
@@ -652,32 +638,28 @@ func (sched *myScheduler) checkBufferPoolForStart() error {
 		return genError("nil request buffer pool")
 	}
 	if sched.reqBufferPool != nil && sched.reqBufferPool.Closed() {
-		sched.reqBufferPool, _ = buffer.NewPool(
-			sched.reqBufferPool.BufferCap(), sched.reqBufferPool.MaxBufferNumber())
+		sched.reqBufferPool, _ = buffer.NewPool(sched.reqBufferPool.BufferCap(), sched.reqBufferPool.MaxBufferNumber())
 	}
 	// 检查响应缓冲池。
 	if sched.respBufferPool == nil {
 		return genError("nil response buffer pool")
 	}
 	if sched.respBufferPool != nil && sched.respBufferPool.Closed() {
-		sched.respBufferPool, _ = buffer.NewPool(
-			sched.respBufferPool.BufferCap(), sched.respBufferPool.MaxBufferNumber())
+		sched.respBufferPool, _ = buffer.NewPool(sched.respBufferPool.BufferCap(), sched.respBufferPool.MaxBufferNumber())
 	}
 	// 检查条目缓冲池。
 	if sched.itemBufferPool == nil {
 		return genError("nil item buffer pool")
 	}
 	if sched.itemBufferPool != nil && sched.itemBufferPool.Closed() {
-		sched.itemBufferPool, _ = buffer.NewPool(
-			sched.itemBufferPool.BufferCap(), sched.itemBufferPool.MaxBufferNumber())
+		sched.itemBufferPool, _ = buffer.NewPool(sched.itemBufferPool.BufferCap(), sched.itemBufferPool.MaxBufferNumber())
 	}
 	// 检查错误缓冲池。
 	if sched.errorBufferPool == nil {
 		return genError("nil error buffer pool")
 	}
 	if sched.errorBufferPool != nil && sched.errorBufferPool.Closed() {
-		sched.errorBufferPool, _ = buffer.NewPool(
-			sched.errorBufferPool.BufferCap(), sched.errorBufferPool.MaxBufferNumber())
+		sched.errorBufferPool, _ = buffer.NewPool(sched.errorBufferPool.BufferCap(), sched.errorBufferPool.MaxBufferNumber())
 	}
 	return nil
 }
@@ -688,9 +670,9 @@ func (sched *myScheduler) resetContext() {
 }
 
 // canceled 用于判断调度器的上下文是否已被取消。
-func (sched *myScheduler) canceled() bool {
+func (schedule *myScheduler) canceled() bool {
 	select {
-	case <-sched.ctx.Done():
+	case <-schedule.ctx.Done():
 		return true
 	default:
 		return false
