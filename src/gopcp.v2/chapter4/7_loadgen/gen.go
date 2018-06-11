@@ -33,7 +33,6 @@ type myGenerator struct {
 
 // NewGenerator 会新建一个载荷发生器。
 func NewGenerator(pset ParamSet) (lib.Generator, error) {
-
 	logger.Infoln("New a load generator...")
 	if err := pset.Check(); err != nil {
 		return nil, err
@@ -57,7 +56,7 @@ func (gen *myGenerator) init() error {
 	var buf bytes.Buffer
 	buf.WriteString("Initializing the load generator...")
 	// 载荷的并发量 ≈ 载荷的响应超时时间 / 载荷的发送间隔时间
-	var total64 = int64(gen.timeoutNS)/int64(1e9/gen.lps) + 1
+	var total64 = int64(gen.timeoutNS) / int64(1e9 / gen.lps) + 1
 	if total64 > math.MaxInt32 {
 		total64 = math.MaxInt32
 	}
@@ -184,8 +183,7 @@ func (gen *myGenerator) printIgnoredResult(result *lib.CallResult, cause string)
 // prepareStop 用于为停止载荷发生器做准备。
 func (gen *myGenerator) prepareToStop(ctxError error) {
 	logger.Infof("Prepare to stop load generator (cause: %s)...", ctxError)
-	atomic.CompareAndSwapUint32(
-		&gen.status, lib.STATUS_STARTED, lib.STATUS_STOPPING)
+	atomic.CompareAndSwapUint32(&gen.status, lib.STATUS_STARTED, lib.STATUS_STOPPING)
 	logger.Infof("Closing result channel...")
 	close(gen.resultCh)
 	atomic.StoreUint32(&gen.status, lib.STATUS_STOPPED)
@@ -216,10 +214,8 @@ func (gen *myGenerator) genLoad(throttle <-chan time.Time) {
 func (gen *myGenerator) Start() bool {
 	logger.Infoln("Starting load generator...")
 	// 检查是否具备可启动的状态，顺便设置状态为正在启动
-	if !atomic.CompareAndSwapUint32(
-		&gen.status, lib.STATUS_ORIGINAL, lib.STATUS_STARTING) {
-		if !atomic.CompareAndSwapUint32(
-			&gen.status, lib.STATUS_STOPPED, lib.STATUS_STARTING) {
+	if !atomic.CompareAndSwapUint32(&gen.status, lib.STATUS_ORIGINAL, lib.STATUS_STARTING) {
+		if !atomic.CompareAndSwapUint32(&gen.status, lib.STATUS_STOPPED, lib.STATUS_STARTING) {
 			return false
 		}
 	}
@@ -233,8 +229,7 @@ func (gen *myGenerator) Start() bool {
 	}
 
 	// 初始化上下文和取消函数。
-	gen.ctx, gen.cancelFunc = context.WithTimeout(
-		context.Background(), gen.durationNS)
+	gen.ctx, gen.cancelFunc = context.WithTimeout(context.Background(), gen.durationNS)
 
 	// 初始化调用计数。
 	gen.callCount = 0

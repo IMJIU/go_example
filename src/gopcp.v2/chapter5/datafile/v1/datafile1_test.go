@@ -46,8 +46,7 @@ func TestIDataFile(t *testing.T) {
 }
 
 func testNew(path string, dataLen uint32, t *testing.T) {
-	t.Logf("New a data file (path: %s, dataLen: %d)...\n",
-		path, dataLen)
+	t.Logf("New a data file (path: %s, dataLen: %d)...\n", path, dataLen)
 	dataFile, err := NewDataFile(path, dataLen)
 	if err != nil {
 		t.Logf("Couldn't new a data file: %s", err)
@@ -64,8 +63,7 @@ func testNew(path string, dataLen uint32, t *testing.T) {
 }
 
 func testRW(path string, dataLen uint32, max int, t *testing.T) {
-	t.Logf("New a data file (path: %s, dataLen: %d)...\n",
-		path, dataLen)
+	t.Logf("New a data file (path: %s, dataLen: %d)...\n", path, dataLen)
 	dataFile, err := NewDataFile(path, dataLen)
 	if err != nil {
 		t.Logf("Couldn't new a data file: %s", err)

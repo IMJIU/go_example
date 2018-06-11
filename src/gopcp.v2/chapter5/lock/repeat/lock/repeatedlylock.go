@@ -16,6 +16,8 @@ func main() {
 			fmt.Printf("Lock the lock. (g%d)\n", i)
 			mutex.Lock()
 			fmt.Printf("The lock is locked. (g%d)\n", i)
+			mutex.Unlock()
+			fmt.Printf("The lock is unlocked. (g%d)\n", i)
 		}(i)
 	}
 	time.Sleep(time.Second)

@@ -34,9 +34,7 @@ func (comm *TCPComm) BuildReq() loadgenlib.RawReq {
 	id := time.Now().UnixNano()
 	sreq := ServerReq{
 		ID: id,
-		Operands: []int{
-			int(rand.Int31n(1000) + 1),
-			int(rand.Int31n(1000) + 1)},
+		Operands: []int{int(rand.Int31n(1000) + 1), int(rand.Int31n(1000) + 1)},
 		Operator: func() string {
 			return operators[rand.Int31n(100) % 4]
 		}(),
@@ -63,8 +61,7 @@ func (comm *TCPComm) Call(req []byte, timeoutNS time.Duration) ([]byte, error) {
 }
 
 // CheckResp 会检查响应内容。
-func (comm *TCPComm) CheckResp(
-rawReq loadgenlib.RawReq, rawResp loadgenlib.RawResp) *loadgenlib.CallResult {
+func (comm *TCPComm) CheckResp(rawReq loadgenlib.RawReq, rawResp loadgenlib.RawResp) *loadgenlib.CallResult {
 	var commResult loadgenlib.CallResult
 	commResult.ID = rawResp.ID
 	commResult.Req = rawReq
@@ -73,36 +70,29 @@ rawReq loadgenlib.RawReq, rawResp loadgenlib.RawResp) *loadgenlib.CallResult {
 	err := json.Unmarshal(rawReq.Req, &sreq)
 	if err != nil {
 		commResult.Code = loadgenlib.RET_CODE_FATAL_CALL
-		commResult.Msg =
-			fmt.Sprintf("Incorrectly formatted Req: %s!\n", string(rawReq.Req))
+		commResult.Msg = fmt.Sprintf("Incorrectly formatted Req: %s!\n", string(rawReq.Req))
 		return &commResult
 	}
 	var sresp ServerResp
 	err = json.Unmarshal(rawResp.Resp, &sresp)
 	if err != nil {
 		commResult.Code = loadgenlib.RET_CODE_ERROR_RESPONSE
-		commResult.Msg =
-			fmt.Sprintf("Incorrectly formatted Resp: %s!\n", string(rawResp.Resp))
+		commResult.Msg = fmt.Sprintf("Incorrectly formatted Resp: %s!\n", string(rawResp.Resp))
 		return &commResult
 	}
 	if sresp.ID != sreq.ID {
 		commResult.Code = loadgenlib.RET_CODE_ERROR_RESPONSE
-		commResult.Msg =
-			fmt.Sprintf("Inconsistent raw id! (%d != %d)\n", rawReq.ID, rawResp.ID)
+		commResult.Msg = fmt.Sprintf("Inconsistent raw id! (%d != %d)\n", rawReq.ID, rawResp.ID)
 		return &commResult
 	}
 	if sresp.Err != nil {
 		commResult.Code = loadgenlib.RET_CODE_ERROR_CALEE
-		commResult.Msg =
-			fmt.Sprintf("Abnormal server: %s!\n", sresp.Err)
+		commResult.Msg = fmt.Sprintf("Abnormal server: %s!\n", sresp.Err)
 		return &commResult
 	}
 	if sresp.Result != op(sreq.Operands, sreq.Operator) {
 		commResult.Code = loadgenlib.RET_CODE_ERROR_RESPONSE
-		commResult.Msg =
-			fmt.Sprintf(
-				"Incorrect result: %s!\n",
-				genExpress(sreq.Operands, sreq.Operator, sresp.Result, false))
+		commResult.Msg = fmt.Sprintf("Incorrect result: %s!\n", genExpress(sreq.Operands, sreq.Operator, sresp.Result, false))
 		return &commResult
 	}
 	commResult.Code = loadgenlib.RET_CODE_SUCCESS
@@ -112,7 +102,7 @@ rawReq loadgenlib.RawReq, rawResp loadgenlib.RawResp) *loadgenlib.CallResult {
 
 // read 会从连接中读数据直到遇到参数delim代表的字节。
 func read(conn net.Conn, delim byte) ([]byte, error) {
-	readBytes := make([]byte, 1)
+	readBytes := make([]byte, 64)
 	var buffer bytes.Buffer
 	for {
 		n, err := conn.Read(readBytes)
@@ -121,9 +111,10 @@ func read(conn net.Conn, delim byte) ([]byte, error) {
 		}
 		readByte := readBytes[n - 1]
 		if readByte == delim {
+			buffer.Write(readBytes[0:n - 1])
 			break
 		}
-		buffer.WriteByte(readByte)
+		buffer.Write(readBytes)
 	}
 	return buffer.Bytes(), nil
 }
