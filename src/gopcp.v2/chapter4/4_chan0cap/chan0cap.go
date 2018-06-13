@@ -25,7 +25,7 @@ func main() {
 		close(intChan)
 	}()
 	var lastTime, curTime int64
-Loop:
+	Loop:
 	for {
 		select {
 		case v, ok := <-intChan:

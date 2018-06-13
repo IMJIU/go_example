@@ -17,6 +17,8 @@ func main() {
 	default:
 		fmt.Println("Default!")
 	}
+	<-channels[0]
+	//<-channels[1]
 }
 
 func getNumber(i int) int {

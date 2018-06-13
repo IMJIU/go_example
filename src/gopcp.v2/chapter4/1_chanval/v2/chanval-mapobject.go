@@ -18,6 +18,7 @@ func main() {
 		for {
 			if elem, ok := <-mapChan; ok {
 				counter := elem["count"]
+				fmt.Printf("The count map: %v. [sender]\n", counter)
 				counter.count++
 			} else {
 				break
