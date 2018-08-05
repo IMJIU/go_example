@@ -33,10 +33,10 @@ func NewTCPComm(addr string) loadgenlib.Caller {
 func (comm *TCPComm) BuildReq() loadgenlib.RawReq {
 	id := time.Now().UnixNano()
 	sreq := ServerReq{
-		ID: id,
+		ID:       id,
 		Operands: []int{int(rand.Int31n(1000) + 1), int(rand.Int31n(1000) + 1)},
 		Operator: func() string {
-			return operators[rand.Int31n(100) % 4]
+			return operators[rand.Int31n(100)%4]
 		}(),
 	}
 	bytes, err := json.Marshal(sreq)
@@ -109,9 +109,9 @@ func read(conn net.Conn, delim byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		readByte := readBytes[n - 1]
+		readByte := readBytes[n-1]
 		if readByte == delim {
-			buffer.Write(readBytes[0:n - 1])
+			buffer.Write(readBytes[0 : n-1])
 			break
 		}
 		buffer.Write(readBytes)
@@ -124,7 +124,7 @@ func write(conn net.Conn, content []byte, delim byte) (int, error) {
 	writer := bufio.NewWriter(conn)
 	n, err := writer.Write(content)
 	if err == nil {
-		writer.WriteByte(delim)
+		err = writer.WriteByte(delim)
 	}
 	if err == nil {
 		err = writer.Flush()

@@ -10,7 +10,7 @@ func main() {
 	close(ich)
 	countDownCh := make(chan struct{}, 1)
 	go func() {
-		Loop:
+	Loop:
 		for {
 			select {
 			case e, ok := <-ich:

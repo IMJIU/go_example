@@ -18,7 +18,7 @@ func main() {
 	//TestStop()
 }
 func Test_Start() {
-	t := log.DLogger();
+	t := log.DLogger()
 	// 初始化服务器。
 	server := helper.NewTCPServer()
 	defer server.Close()
