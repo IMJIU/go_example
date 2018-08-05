@@ -60,11 +60,11 @@ func (c *UdpConn) AddrIndex() int             { return c.addrIndex }
 func (c *UdpConn) LocalAddr() net.Addr        { return c.localAddr }
 func (c *UdpConn) RemoteAddr() net.Addr       { return c.remoteAddr }
 
-type stdin struct {
+type OioInByte struct {
 	c  *OioConn
 	in []byte
 }
-type stderr struct {
+type StdErr struct {
 	c   *OioConn
 	err error
 }
@@ -96,27 +96,27 @@ func stdserve(events Events, listeners []*Listener) error {
 		}
 	}
 
-	s := &OioServer{}
-	s.events = events
-	s.listeners = listeners
-	s.cond = sync.NewCond(&sync.Mutex{})
+	server := &OioServer{}
+	server.events = events
+	server.listeners = listeners
+	server.cond = sync.NewCond(&sync.Mutex{})
 
 	//println("-- server starting")
-	if events.Serving != nil {
+	if events.onStart != nil {
 		var svr Server
-		svr.NumLoops = numLoops
+		svr.loopCnt = numLoops
 		svr.Addrs = make([]net.Addr, len(listeners))
 		for i, ln := range listeners {
 			svr.Addrs[i] = ln.listenerAddr
 		}
-		action := events.Serving(svr)
+		action := events.onStart(svr)
 		switch action {
 		case Shutdown:
 			return nil
 		}
 	}
 	for i := 0; i < numLoops; i++ {
-		s.loops = append(s.loops, &Loop{
+		server.loops = append(server.loops, &Loop{
 			idx:   i,
 			ch:    make(chan interface{}),
 			conns: make(map[*OioConn]bool),
@@ -125,39 +125,39 @@ func stdserve(events Events, listeners []*Listener) error {
 	var ferr error
 	defer func() {
 		// wait on a signal for shutdown
-		ferr = s.waitForShutdown()
+		ferr = server.waitForShutdown()
 
 		// notify all loops to close by closing all listeners
-		for _, l := range s.loops {
-			l.ch <- errClosing
+		for _, loop := range server.loops {
+			loop.ch <- errClosing
 		}
 
 		// wait on all loops to main loop channel events
-		s.loopWg.Wait()
+		server.loopWg.Wait()
 
 		// shutdown all listeners
-		for i := 0; i < len(s.listeners); i++ {
-			s.listeners[i].close()
+		for i := 0; i < len(server.listeners); i++ {
+			server.listeners[i].close()
 		}
 
 		// wait on all listeners to complete
-		s.listenerWg.Wait()
+		server.listenerWg.Wait()
 
 		// close all connections
-		s.loopWg.Add(len(s.loops))
-		for _, l := range s.loops {
+		server.loopWg.Add(len(server.loops))
+		for _, l := range server.loops {
 			l.ch <- errCloseConns
 		}
-		s.loopWg.Wait()
+		server.loopWg.Wait()
 
 	}()
-	s.loopWg.Add(numLoops)
+	server.loopWg.Add(numLoops)
 	for i := 0; i < numLoops; i++ {
-		go loopRun(s, s.loops[i])
+		go loopRun(server, server.loops[i])
 	}
-	s.listenerWg.Add(len(listeners))
+	server.listenerWg.Add(len(listeners))
 	for i := 0; i < len(listeners); i++ {
-		go listenerRun(s, listeners[i], i)
+		go listenerRun(server, listeners[i], i)
 	}
 	return ferr
 }
@@ -200,10 +200,10 @@ func listenerRun(server *OioServer, listener *Listener, listenerIndex int) {
 					n, err := c.conn.Read(packet[:])
 					if err != nil {
 						c.conn.SetReadDeadline(time.Time{})
-						loop.ch <- &stderr{c, err}
+						loop.ch <- &StdErr{c, err}
 						return
 					}
-					loop.ch <- &stdin{c, append([]byte{}, packet[:n]...)}
+					loop.ch <- &OioInByte{c, append([]byte{}, packet[:n]...)}
 				}
 			}(oioConn)
 		}
@@ -255,11 +255,11 @@ func loopRun(server *OioServer, loop *Loop) {
 				err = v
 			case *OioConn:
 				err = loopAccept(server, loop, v)
-			case *stdin:
+			case *OioInByte:
 				err = loopRead(server, loop, v.c, v.in)
 			case *UdpConn:
 				err = loopReadUDP(server, loop, v)
-			case *stderr:
+			case *StdErr:
 				err = loopError(server, loop, v.c, v.err)
 			}
 		}
@@ -269,22 +269,22 @@ func loopRun(server *OioServer, loop *Loop) {
 	}
 }
 
-func loopEgress(s *OioServer, l *Loop) {
+func loopEgress(server *OioServer, loop *Loop) {
 	var closed bool
 loop:
-	for v := range l.ch {
+	for v := range loop.ch {
 		switch v := v.(type) {
 		case error:
 			if v == errCloseConns {
 				closed = true
-				for c := range l.conns {
-					loopClose(s, l, c)
+				for c := range loop.conns {
+					loopClose(server, loop, c)
 				}
 			}
-		case *stderr:
-			loopError(s, l, v.c, v.err)
+		case *StdErr:
+			loopError(server, loop, v.c, v.err)
 		}
-		if len(l.conns) == 0 && closed {
+		if len(loop.conns) == 0 && closed {
 			break loop
 		}
 	}
@@ -318,8 +318,8 @@ func (c *DetachedConn) Write(p []byte) (n int, err error) {
 func (c *DetachedConn) Close() error {
 	return c.conn.Close()
 }
-func loopError(s *OioServer, l *Loop, conn *OioConn, err error) error {
-	delete(l.conns, conn)
+func loopError(server *OioServer, loop *Loop, conn *OioConn, err error) error {
+	delete(loop.conns, conn)
 	closeEvent := true
 	switch atomic.LoadInt32(&conn.done) {
 	case 0: // read error
@@ -332,19 +332,19 @@ func loopError(s *OioServer, l *Loop, conn *OioConn, err error) error {
 		err = nil
 	case 2: // detached
 		err = nil
-		if s.events.Detached == nil {
+		if server.events.Detached == nil {
 			conn.conn.Close()
 		} else {
 			closeEvent = false
-			switch s.events.Detached(conn, &DetachedConn{conn.conn, conn.extraData}) {
+			switch server.events.Detached(conn, &DetachedConn{conn.conn, conn.extraData}) {
 			case Shutdown:
 				return errClosing
 			}
 		}
 	}
 	if closeEvent {
-		if s.events.Closed != nil {
-			switch s.events.Closed(conn, err) {
+		if server.events.Closed != nil {
+			switch server.events.Closed(conn, err) {
 			case Shutdown:
 				return errClosing
 			}
@@ -353,33 +353,33 @@ func loopError(s *OioServer, l *Loop, conn *OioConn, err error) error {
 	return nil
 }
 
-func loopRead(s *OioServer, l *Loop, c *OioConn, in []byte) error {
-	if atomic.LoadInt32(&c.done) == 2 {
+func loopRead(server *OioServer, loop *Loop, oioConn *OioConn, inBytes []byte) error {
+	if atomic.LoadInt32(&oioConn.done) == 2 {
 		// should not ignore reads for detached connections
-		c.extraData = append(c.extraData, in...)
+		oioConn.extraData = append(oioConn.extraData, inBytes...)
 		return nil
 	}
-	if s.events.Data != nil {
-		out, action := s.events.Data(c, in)
+	if server.events.Data != nil {
+		out, action := server.events.Data(oioConn, inBytes)
 		if len(out) > 0 {
-			if s.events.PreWrite != nil {
-				s.events.PreWrite()
+			if server.events.PreWrite != nil {
+				server.events.PreWrite()
 			}
-			c.conn.Write(out)
+			oioConn.conn.Write(out)
 		}
 		switch action {
 		case Shutdown:
 			return errClosing
 		case Detach:
-			return loopDetach(s, l, c)
+			return loopDetach(server, loop, oioConn)
 		case Close:
-			return loopClose(s, l, c)
+			return loopClose(server, loop, oioConn)
 		}
 	}
 	return nil
 }
 
-func loopDetach(s *OioServer, l *Loop, c *OioConn) error {
+func loopDetach(s *OioServer, loop *Loop, c *OioConn) error {
 	atomic.StoreInt32(&c.done, 2)
 	c.conn.SetReadDeadline(time.Now())
 	return nil
@@ -391,22 +391,22 @@ func loopClose(s *OioServer, l *Loop, c *OioConn) error {
 	return nil
 }
 
-func loopAccept(s *OioServer, l *Loop, c *OioConn) error {
-	l.conns[c] = true
-	c.addrIndex = c.listenerIdx
-	c.localAddr = s.listeners[c.listenerIdx].listenerAddr
-	c.remoteAddr = c.conn.RemoteAddr()
+func loopAccept(server *OioServer, loop *Loop, oioConn *OioConn) error {
+	loop.conns[oioConn] = true
+	oioConn.addrIndex = oioConn.listenerIdx
+	oioConn.localAddr = server.listeners[oioConn.listenerIdx].listenerAddr
+	oioConn.remoteAddr = oioConn.conn.RemoteAddr()
 
-	if s.events.Opened != nil {
-		out, opts, action := s.events.Opened(c)
+	if server.events.Opened != nil {
+		out, opts, action := server.events.Opened(oioConn)
 		if len(out) > 0 {
-			if s.events.PreWrite != nil {
-				s.events.PreWrite()
+			if server.events.PreWrite != nil {
+				server.events.PreWrite()
 			}
-			c.conn.Write(out)
+			oioConn.conn.Write(out)
 		}
 		if opts.TCPKeepAlive > 0 {
-			if c, ok := c.conn.(*net.TCPConn); ok {
+			if c, ok := oioConn.conn.(*net.TCPConn); ok {
 				c.SetKeepAlive(true)
 				c.SetKeepAlivePeriod(opts.TCPKeepAlive)
 			}
@@ -415,9 +415,9 @@ func loopAccept(s *OioServer, l *Loop, c *OioConn) error {
 		case Shutdown:
 			return errClosing
 		case Detach:
-			return loopDetach(s, l, c)
+			return loopDetach(server, loop, oioConn)
 		case Close:
-			return loopClose(s, l, c)
+			return loopClose(server, loop, oioConn)
 		}
 	}
 	return nil

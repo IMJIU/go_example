@@ -44,7 +44,7 @@ type Server struct {
 	// The addrs parameter is an array of listening addresses that align
 	// with the addr strings passed to the Serve function.
 	Addrs []net.Addr
-	// NumLoops is the number of loops that the server is using.
+	// loopCnt is the number of loops that the server is using.
 	NumLoops int
 }
 
@@ -80,7 +80,7 @@ const (
 // Each event has an Action return value that is used manage the state
 // of the connection and server.
 type Events struct {
-	// NumLoops sets the number of loops to use for the server. Setting this
+	// loopCnt sets the number of loops to use for the server. Setting this
 	// to a value greater than 1 will effectively make the server
 	// multithreaded for multi-core machines. Which means you must take care
 	// with synchonizing memory between all event callbacks. Setting to 0 or 1
@@ -89,9 +89,9 @@ type Events struct {
 	NumLoops int
 	// LoadBalance sets the load balancing method. Load balancing is always a
 	// best effort to attempt to distribute the incoming connections between
-	// multiple loops. This option is only works when NumLoops is set.
+	// multiple loops. This option is only works when loopCnt is set.
 	LoadBalance LoadBalance
-	// Serving fires when the server can accept connections. The server
+	// onStart fires when the server can accept connections. The server
 	// parameter has information and various utilities.
 	Serving func(server Server) (action Action)
 	// Opened fires when a new connection has opened.
