@@ -102,14 +102,14 @@ func stdserve(events Events, listeners []*Listener) error {
 	server.cond = sync.NewCond(&sync.Mutex{})
 
 	//println("-- server starting")
-	if events.onStart != nil {
+	if events.OnStart != nil {
 		var svr Server
-		svr.loopCnt = numLoops
+		svr.LoopCnt = numLoops
 		svr.Addrs = make([]net.Addr, len(listeners))
 		for i, ln := range listeners {
 			svr.Addrs[i] = ln.listenerAddr
 		}
-		action := events.onStart(svr)
+		action := events.OnStart(svr)
 		switch action {
 		case Shutdown:
 			return nil

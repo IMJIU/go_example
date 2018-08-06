@@ -12,19 +12,19 @@ import (
 	"os"
 )
 
-func (lisener *Listener) close() {
-	if lisener.listener != nil {
-		lisener.listener.Close()
+func (listener *Listener) close() {
+	if listener.listener != nil {
+		listener.listener.Close()
 	}
-	if lisener.packetConn != nil {
-		lisener.packetConn.Close()
+	if listener.packetConn != nil {
+		listener.packetConn.Close()
 	}
-	if lisener.network == "unix" {
-		os.RemoveAll(lisener.addr)
+	if listener.network == "unix" {
+		os.RemoveAll(listener.addr)
 	}
 }
 
-func (ln *Listener) system() error {
+func (listener *Listener) system() error {
 	return nil
 }
 

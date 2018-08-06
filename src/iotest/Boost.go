@@ -36,7 +36,7 @@ type Options struct {
 
 type Server struct {
 	Addrs   []net.Addr
-	loopCnt int
+	LoopCnt int
 }
 
 // Conn is an evio connection.
@@ -65,7 +65,7 @@ const (
 type Events struct {
 	NumLoops    int
 	LoadBalance LoadBalance
-	onStart     func(server Server) (action Action)
+	OnStart     func(server Server) (action Action)
 	Opened      func(conn Conn) (outBytes []byte, opts Options, action Action)
 	Closed      func(conn Conn, err error) (action Action)
 	Detached    func(conn Conn, rwc io.ReadWriteCloser) (action Action)
