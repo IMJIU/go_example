@@ -55,14 +55,15 @@ func Proc(ctx context.Context) {
 }
 
 func Handler(r *http.Request) {
-	timeout := r.Value("timeout")
+	//timeout := r.Value("timeout")
+	timeout := time.Duration(1000)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	done := make(chan struct{}, 1)
 	go func() {
 		//RPC(ctx,...)
 		fmt.Println("ok")
-		done <-  struct{}(1)
+		done <- struct{}{}
 	}()
 	select {
 	case <-done:
