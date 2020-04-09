@@ -99,8 +99,7 @@ func serverGo() {
 		if err != nil {
 			printServerLog("Accept Error: %s", err)
 		}
-		printServerLog("Established a connection with a client application. (remote address: %s)",
-			conn.RemoteAddr())
+		printServerLog("Established a connection with a client application. (remote address: %s)", conn.RemoteAddr())
 		go handleConn(conn)
 	}
 }
@@ -146,8 +145,7 @@ func clientGo(id int) {
 		return
 	}
 	defer conn.Close()
-	printClientLog(id, "Connected to server. (remote address: %s, local address: %s)",
-		conn.RemoteAddr(), conn.LocalAddr())
+	printClientLog(id, "Connected to server. (remote address: %s, local address: %s)", conn.RemoteAddr(), conn.LocalAddr())
 	time.Sleep(200 * time.Millisecond)
 	requestNumber := 5
 	conn.SetDeadline(time.Now().Add(5 * time.Millisecond))
