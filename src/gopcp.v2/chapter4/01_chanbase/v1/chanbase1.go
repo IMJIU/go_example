@@ -7,6 +7,7 @@ import (
 
 var queueChan = make(chan string, 3)
 
+//发送chan方，比较快，不符合逻辑-！！
 func main() {
 	sync1 := make(chan struct{}, 1)
 	sync2 := make(chan struct{}, 2)

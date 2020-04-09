@@ -1,12 +1,12 @@
 package main
 
 import (
+	"./chatbot"
 	"bufio"
 	"flag"
 	"fmt"
 	"os"
 	"runtime/debug"
-	"./chatbot"
 	//"gopcp.v2/chapter2/talk/v2/chatbot"
 )
 
@@ -19,8 +19,8 @@ func init() {
 
 func main() {
 	flag.Parse()
-	chatbot.Register(chatbot.NewSimpleEN("simple.en", nil))
 	chatbot.Register(chatbot.NewSimpleCN("simple.cn", nil))
+	//chatbot.Register(chatbot.NewSimpleEN("simple.en", chatbot.Get("simple.cn")))
 	myChatbot := chatbot.Get(chatbotName)
 	if myChatbot == nil {
 		err := fmt.Errorf("Fatal error: Unsupported chatbot named %s\n", chatbotName)

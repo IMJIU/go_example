@@ -14,11 +14,11 @@ var mapChan = make(chan map[string]Counter, 1)
 
 func main() {
 	syncChan := make(chan struct{}, 2)
-	go func() { // 用于演示接收操作。
+	go func() { // 接收操作。
 		for {
 			if elem, ok := <-mapChan; ok {
 				counter := elem["count"]
-				fmt.Printf("The count map: %v. [sender]\n", counter)
+				fmt.Printf("The count map: %v. [receiver]\n", counter)
 				counter.count++
 			} else {
 				break
@@ -27,7 +27,7 @@ func main() {
 		fmt.Println("Stopped. [receiver]")
 		syncChan <- struct{}{}
 	}()
-	go func() { // 用于演示发送操作。
+	go func() { // 发送操作。
 		countMap := map[string]Counter{
 			"count": Counter{},
 		}
